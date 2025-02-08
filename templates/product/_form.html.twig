@@ -1,0 +1,254 @@
+{{ form_start(form, {
+    'attr': {
+        'class': 'needs-validation',
+        'novalidate': 'novalidate',
+        'data-turbo': 'false'
+    }
+}) }}
+
+{% if not form.vars.valid %}
+    <div class="alert alert-danger alert-dismissible fade show">
+        <h5><i class="fas fa-exclamation-triangle"></i> Обнаружены ошибки при заполнении формы:</h5>
+        <ul class="mb-0">
+            {% if form.vars.errors|length > 0 %}
+                {% for error in form.vars.errors %}
+                    <li>{{ error.message }}</li>
+                {% endfor %}
+            {% endif %}
+            {% for child in form.children %}
+                {% if not child.vars.valid %}
+                    {% for error in child.vars.errors %}
+                        <li>{{ error.message }}</li>
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Парсинг данных с Alza.cz</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-0">
+            <div class="col-md-9">
+                <div class="form-group mb-0">
+                    {{ form_label(form.alzaUrl, null, {'label_attr': {'class': 'visually-hidden'}}) }}
+                    {{ form_widget(form.alzaUrl, {
+                        'attr': {
+                            'class': 'form-control rounded-0 rounded-start',
+                            'placeholder': 'Введите URL товара с alza.cz'
+                        }
+                    }) }}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button type="button" class="btn btn-primary h-100 w-100 rounded-0 rounded-end" id="parseButton">
+                    <i class="fas fa-download"></i> Получить данные
+                </button>
+            </div>
+        </div>
+        <div id="parseError" class="alert alert-danger mt-3" style="display: none;"></div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            {{ form_label(form.name) }}
+            <div class="input-group has-validation">
+                {{ form_widget(form.name, {
+                    'attr': {
+                        'class': 'form-control' ~ (not form.name.vars.valid ? ' is-invalid'),
+                        'required': 'required',
+                        'id': 'product_name'
+                    }
+                }) }}
+                <div class="invalid-feedback">
+                    {% if not form.name.vars.valid %}
+                        {% for error in form.name.vars.errors %}
+                            {{ error.message }}
+                        {% endfor %}
+                    {% else %}
+                        Это поле обязательно для заполнения
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            {{ form_label(form.price) }}
+            <div class="input-group has-validation">
+                {{ form_widget(form.price, {
+                    'attr': {
+                        'class': 'form-control' ~ (not form.price.vars.valid ? ' is-invalid'),
+                        'required': 'required',
+                        'id': 'product_price',
+                        'type': 'number',
+                        'step': '0.01',
+                        'min': '0.01',
+                        'placeholder': '0.00'
+                    }
+                }) }}
+                <div class="invalid-feedback">
+                    {% if not form.price.vars.valid %}
+                        {% for error in form.price.vars.errors %}
+                            {{ error.message }}
+                        {% endfor %}
+                    {% else %}
+                        Это поле обязательно для заполнения
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="mb-3">
+            {{ form_label(form.photo) }}
+            <div class="input-group has-validation">
+                {{ form_widget(form.photo, {
+                    'attr': {
+                        'class': 'form-control' ~ (not form.photo.vars.valid ? ' is-invalid'),
+                        'required': 'required',
+                        'id': 'product_photo'
+                    }
+                }) }}
+                <div class="invalid-feedback">
+                    {% if not form.photo.vars.valid %}
+                        {% for error in form.photo.vars.errors %}
+                            {{ error.message }}
+                        {% endfor %}
+                    {% else %}
+                        Это поле обязательно для заполнения
+                    {% endif %}
+                </div>
+            </div>
+            <div id="photoPreview" class="mt-2"></div>
+        </div>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="mb-3">
+            {{ form_label(form.description) }}
+            <div class="input-group">
+                {{ form_widget(form.description, {
+                    'attr': {
+                        'class': 'form-control',
+                        'rows': 3,
+                        'id': 'product_description',
+                        'placeholder': 'Описание товара (необязательно)'
+                    }
+                }) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ form_rest(form) }}
+
+<div class="mt-4">
+    <button class="btn btn-primary">{{ button_label|default('Сохранить') }}</button>
+</div>
+
+{{ form_end(form) }}
+
+<script>
+(function() {  // Используем IIFE для немедленного выполнения
+    const parseButton = document.getElementById('parseButton');
+    const parseError = document.getElementById('parseError');
+    const photoPreview = document.getElementById('photoPreview');
+    
+    if (!parseButton) return; // Проверяем наличие кнопки
+    
+    parseButton.addEventListener('click', function() {
+        const alzaUrlInput = document.querySelector('[name="product[alzaUrl]"]');
+        if (!alzaUrlInput) return;
+        
+        const alzaUrl = alzaUrlInput.value;
+        if (!alzaUrl) {
+            parseError.textContent = 'Введите URL товара';
+            parseError.style.display = 'block';
+            return;
+        }
+
+        parseError.style.display = 'none';
+        parseButton.disabled = true;
+        parseButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+        
+        fetch('/api/parse-product', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ url: alzaUrl })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Ошибка при получении данных');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Заполняем поля формы
+            const nameInput = document.getElementById('product_name');
+            const priceInput = document.getElementById('product_price');
+            const photoInput = document.getElementById('product_photo');
+            
+            if (nameInput) nameInput.value = data.name || '';
+            if (priceInput) priceInput.value = data.price || '';
+            if (photoInput) photoInput.value = data.photo || '';
+            
+            // Показываем превью фото
+            if (data.photo && photoPreview) {
+                photoPreview.innerHTML = `
+                    <img src="${data.photo}" 
+                         alt="Preview" 
+                         class="img-thumbnail" 
+                         style="max-height: 100px">`;
+            }
+            
+            // Показываем сообщение об успехе
+            const successAlert = document.createElement('div');
+            successAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
+            successAlert.innerHTML = `
+                Данные успешно получены с Alza.cz
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            parseButton.closest('.card-body').appendChild(successAlert);
+        })
+        .catch(error => {
+            parseError.textContent = error.message || 'Ошибка при получении данных';
+            parseError.style.display = 'block';
+        })
+        .finally(() => {
+            parseButton.disabled = false;
+            parseButton.innerHTML = '<i class="fas fa-download"></i> Получить данные';
+        });
+    });
+    
+    // Валидация формы
+    const form = document.querySelector('form.needs-validation');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    }
+})();
+</script>

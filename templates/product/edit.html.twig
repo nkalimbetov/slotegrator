@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Редактирование продукта{% endblock %}
+
+{% block body %}
+    <div class="container mt-4">
+        {% if not form.vars.valid %}
+            <div class="alert alert-danger">
+                Пожалуйста, исправьте ошибки в форме
+            </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">Редактирование продукта</h1>
+            </div>
+            <div class="card-body">
+                {{ include('product/_form.html.twig', {'button_label': 'Обновить'}) }}
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <a href="{{ path('app_product_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к списку
+                </a>
+                {{ include('product/_delete_form.html.twig') }}
+            </div>
+        </div>
+    </div>
+{% endblock %}
